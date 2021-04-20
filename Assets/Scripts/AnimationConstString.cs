@@ -5,5 +5,6 @@ public class AnimationConstString
     public const string RUNNING = "Running";
     public const string JUMPING = "Jumping";
     public const string FALLING = "Falling";
+    public const string DEATH = "Death";
 
 }
