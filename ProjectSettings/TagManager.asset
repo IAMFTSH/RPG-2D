@@ -1,0 +1,63 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!78 &1
+TagManager:
+  serializedVersion: 2
+  tags:
+  - Cherry
+  - Frog
+  layers:
+  - Default
+  - TransparentFX
+  - Ignore Raycast
+  - 
+  - Water
+  - UI
+  - Ground
+  - Empty
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  m_SortingLayers:
+  - name: Background
+    uniqueID: 592779397
+    locked: 0
+  - name: Environment
+    uniqueID: 1512469751
+    locked: 0
+  - name: Empty
+    uniqueID: 1413157829
+    locked: 0
+  - name: Map
+    uniqueID: 3659093119
+    locked: 0
+  - name: GameItem
+    uniqueID: 1510561479
+    locked: 0
+  - name: Player
+    uniqueID: 4283920731
+    locked: 0
+  - name: Default
+    uniqueID: 0
+    locked: 0
