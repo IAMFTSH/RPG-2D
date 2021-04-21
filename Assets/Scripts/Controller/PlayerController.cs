@@ -5,29 +5,36 @@ using System.Collections.Generic;
 using RPG;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 
 public class PlayerController : AbstractCharacter
 {
     // Start is called before the first frame update
 
+    [Header("速度")]
     public float Speed;
-    [Space]
+    public float CreepingSpeed;
+    [Header("跳跃")]
     public float JumpForce;
     public int JumpCount;
     public Transform UnderGroundCheck;
-    [Space]
+    [Header("受伤动画设置")]
     public float HurtTime;
     public float HurtY;
     public float HurtX;
-    [Space]
-    public LayerMask Ground;
-    [Space]
+    //TODO 把音频提取出来
+    [Header("音频源")]
     public AudioSource HurtAudio;
     public AudioSource JumpAudio;
     public AudioSource ItemAudio;
+    public AudioSource DeathAudio;
 
+    [Header("其他")]
+    //TODO 太捞了
+    public GameObject DeadDialog;
     public GameData GameData { get; set; }
+    private LayerMask Ground;
     private int jumpCount;
     private bool jumpPressed;
     private bool isJump;
@@ -42,24 +49,19 @@ public class PlayerController : AbstractCharacter
         jumpCount = JumpCount;
         //TODO 暂时先这样吧
         GameData = new GameData();
-
-    }
-
-    // Start is called before the first frame update
-    void Start()
-    {
+        Ground=LayerMask.GetMask("Ground");
 
     }
 
     void FixedUpdate()
     {
         //是否在地面
-        Vector2 box = new Vector2(0.5f, 0.1f);
-        isGround = Physics2D.OverlapBox(UnderGroundCheck.position, box, 0, Ground);
+        isGround = Physics2D.OverlapCircle(UnderGroundCheck.position,0.1f, Ground);
         //移动
         if (!animator.GetBool(AnimationConstString.HURTING))
         {
             Movement();
+            Crouch();
         }
         //跳跃
         jump();
@@ -70,8 +72,6 @@ public class PlayerController : AbstractCharacter
     // Update is called once per frame
     void Update()
     {
-
-
         //Movement(1);
         if (Input.GetButtonDown("Jump") && jumpCount > 0)
         {
@@ -89,10 +89,27 @@ public class PlayerController : AbstractCharacter
         //获得输入值的向量
         float vector = Input.GetAxis("Horizontal");
         bool isSameDirection = transform.localScale.x == direction;
-        RB.velocity = new Vector2(vector * Speed, RB.velocity.y);
+        if(animator.GetBool(AnimationConstString.Crouching)){
+        RB.velocity = new Vector2(vector*CreepingSpeed, RB.velocity.y);
+        }else{
+            RB.velocity = new Vector2(vector * Speed, RB.velocity.y);
+        }
         if (direction != 0)
         {
             transform.localScale = new Vector3(direction, 1, 1);
+        }
+    }
+
+    public void Crouch(){
+        CapsuleCollider2D capsuleCollider = (CapsuleCollider2D)coll;
+        if(Input.GetAxisRaw("Vertical")==-1){
+            capsuleCollider.offset=new Vector2(0,-0.6f);
+            capsuleCollider.size=new Vector2(0.9f,0.9f);
+            animator.SetBool(AnimationConstString.Crouching,true);
+        }else if(!Physics2D.OverlapCircle(transform.position,0.3f,Ground)){
+            capsuleCollider.offset=new Vector2(0,-0.3f);
+            capsuleCollider.size=new Vector2(1f,1.45f);
+            animator.SetBool(AnimationConstString.Crouching,false);
         }
     }
 
@@ -167,16 +184,30 @@ public class PlayerController : AbstractCharacter
             GameData.Cherry++;
             ItemAudio.Play();
         }
+        if(collider.gameObject.name=="Deadline"){
+            StartCoroutine("DieHandle");
+        }
     }
-
+    IEnumerator DieHandle(){
+        DeadDialog.SetActive(true);
+        foreach(AudioSource audioSource in GetComponents<AudioSource>()){
+            audioSource.enabled=false;
+        }
+        DeathAudio.enabled=true;
+        DeathAudio.Play();
+        AsyncOperation asyncOperation = SceneManager.LoadSceneAsync(SceneManager.GetActiveScene().name);
+        asyncOperation.allowSceneActivation=false;
+        yield return  new WaitForSeconds(1);
+        asyncOperation.allowSceneActivation=true;
+    }
     private void OnCollisionEnter2D(Collision2D collision)
     {
         if (collision.gameObject.CompareTag("Empty"))
         {
 
-            //TODO 需要判断是否是踩到 而不是侧边碰到
+            
             //玩家与敌人碰撞，判断是否踩到
-            if (animator.GetBool(AnimationConstString.FALLING) && !animator.GetBool(AnimationConstString.HURTING))
+            if (Physics2D.OverlapCircle(UnderGroundCheck.position,0.1f, collision.gameObject.layer) &&animator.GetBool(AnimationConstString.FALLING) && !animator.GetBool(AnimationConstString.HURTING))
             {
                 //TODO 需要统一处理敌人死亡的
                 RB.velocity = new Vector2(RB.velocity.x, 15);

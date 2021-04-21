@@ -1,27 +1,17 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class DialogController : MonoBehaviour
 {
-
-    public GameObject Dialog;
-
-    private void OnTriggerEnter2D(Collider2D other)
+    // Start is called before the first frame update
+    private void Update()
     {
-        if (other.CompareTag("Player"))
+        if (Input.GetKeyDown(KeyCode.E))
         {
-            Dialog.SetActive(true);
+            //TODO BUG 不准确跳关
+            SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex+1);
         }
     }
-
-    private void OnTriggerExit2D(Collider2D other)
-    {
-        if (other.CompareTag("Player"))
-        {
-            Dialog.SetActive(false);
-        }
-    }
-
 }
