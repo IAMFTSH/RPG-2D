@@ -5,8 +5,10 @@ using UnityEngine.UI;
 
 public class BoxCollController : MonoBehaviour
 {
-
-    public GameObject Dialog;
+    GameObject Dialog;
+     private void Awake() {
+        Dialog=GameObject.Find("Canvas").gameObject.transform.Find("Dialog").gameObject;
+     }
 
     private void OnTriggerEnter2D(Collider2D other)
     {

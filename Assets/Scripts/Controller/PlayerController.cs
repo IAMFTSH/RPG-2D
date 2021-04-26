@@ -23,13 +23,6 @@ public class PlayerController : AbstractCharacter
     public float HurtTime;
     public float HurtY;
     public float HurtX;
-    //TODO 把音频提取出来
-    [Header("音频源")]
-    public AudioSource HurtAudio;
-    public AudioSource JumpAudio;
-    public AudioSource ItemAudio;
-    public AudioSource DeathAudio;
-
     [Header("其他")]
     //TODO 太捞了
     public GameObject DeadDialog;
@@ -42,6 +35,8 @@ public class PlayerController : AbstractCharacter
     private AnimatorState animatorState;
     private GameObject canvas;
     private float hurtTimer;
+    List<Collider2D> list;
+    ContactFilter2D contact;
     protected override void Awake()
     {
         base.Awake();
@@ -49,14 +44,17 @@ public class PlayerController : AbstractCharacter
         jumpCount = JumpCount;
         //TODO 暂时先这样吧
         GameData = new GameData();
-        Ground=LayerMask.GetMask("Ground");
+        Ground = LayerMask.GetMask("Ground");
+        list=new List<Collider2D>();
+        contact= new ContactFilter2D();
+        contact.SetLayerMask(Ground);
 
     }
 
     void FixedUpdate()
     {
         //是否在地面
-        isGround = Physics2D.OverlapCircle(UnderGroundCheck.position,0.1f, Ground);
+        isGround = Physics2D.OverlapCircle(UnderGroundCheck.position, 0.1f, Ground);
         //移动
         if (!animator.GetBool(AnimationConstString.HURTING))
         {
@@ -72,11 +70,24 @@ public class PlayerController : AbstractCharacter
     // Update is called once per frame
     void Update()
     {
+        
         //Movement(1);
-        if (Input.GetButtonDown("Jump") && jumpCount > 0)
+        if (Input.GetButtonDown("Jump"))
         {
-            //将跳跃指令储存，待到fixedUpdate中执行
-            jumpPressed = true;
+            if (Input.GetAxisRaw("Vertical") != -1 && jumpCount > 0)
+            {
+                //将跳跃指令储存，待到fixedUpdate中执行
+                jumpPressed = true;
+            }else if(Input.GetAxisRaw("Vertical") == -1){
+
+                coll.OverlapCollider(contact,list);
+                foreach(Collider2D c in list){
+                    if(c.CompareTag("OneGround")){
+                        coll.isTrigger=true;
+                        break;
+                    }
+                }
+            }
         }
         UpdateUI();
     }
@@ -89,9 +100,12 @@ public class PlayerController : AbstractCharacter
         //获得输入值的向量
         float vector = Input.GetAxis("Horizontal");
         bool isSameDirection = transform.localScale.x == direction;
-        if(animator.GetBool(AnimationConstString.Crouching)){
-        RB.velocity = new Vector2(vector*CreepingSpeed, RB.velocity.y);
-        }else{
+        if (animator.GetBool(AnimationConstString.Crouching))
+        {
+            RB.velocity = new Vector2(vector * CreepingSpeed, RB.velocity.y);
+        }
+        else
+        {
             RB.velocity = new Vector2(vector * Speed, RB.velocity.y);
         }
         if (direction != 0)
@@ -100,16 +114,20 @@ public class PlayerController : AbstractCharacter
         }
     }
 
-    public void Crouch(){
+    public void Crouch()
+    {
         CapsuleCollider2D capsuleCollider = (CapsuleCollider2D)coll;
-        if(Input.GetAxisRaw("Vertical")==-1){
-            capsuleCollider.offset=new Vector2(0,-0.6f);
-            capsuleCollider.size=new Vector2(0.9f,0.9f);
-            animator.SetBool(AnimationConstString.Crouching,true);
-        }else if(!Physics2D.OverlapCircle(transform.position,0.3f,Ground)){
-            capsuleCollider.offset=new Vector2(0,-0.3f);
-            capsuleCollider.size=new Vector2(1f,1.45f);
-            animator.SetBool(AnimationConstString.Crouching,false);
+        if (Input.GetAxisRaw("Vertical") == -1)
+        {
+            capsuleCollider.offset = new Vector2(0, -0.6f);
+            capsuleCollider.size = new Vector2(0.9f, 0.9f);
+            animator.SetBool(AnimationConstString.Crouching, true);
+        }
+        else if (!Physics2D.OverlapCircle(transform.position, 0.3f, Ground))
+        {
+            capsuleCollider.offset = new Vector2(0, -0.3f);
+            capsuleCollider.size = new Vector2(1f, 1.45f);
+            animator.SetBool(AnimationConstString.Crouching, false);
         }
     }
 
@@ -160,7 +178,7 @@ public class PlayerController : AbstractCharacter
             RB.velocity = new Vector2(RB.velocity.x, JumpForce);
             jumpCount--;
             jumpPressed = false;
-            JumpAudio.Play();
+            AudioMangerController.instance.Jump();
         }
     }
     void UpdateUI()
@@ -182,32 +200,38 @@ public class PlayerController : AbstractCharacter
         {
             GameObject.Destroy(collider.gameObject);
             GameData.Cherry++;
-            ItemAudio.Play();
+            AudioMangerController.instance.Item();
         }
-        if(collider.gameObject.name=="Deadline"){
+        if (collider.gameObject.name == "Deadline")
+        {
             StartCoroutine("DieHandle");
         }
     }
-    IEnumerator DieHandle(){
-        DeadDialog.SetActive(true);
-        foreach(AudioSource audioSource in GetComponents<AudioSource>()){
-            audioSource.enabled=false;
+        private void OnTriggerExit2D(Collider2D collider)
+    {
+        if (collider.CompareTag("OneGround"))
+        {
+            coll.isTrigger=false;
         }
-        DeathAudio.enabled=true;
-        DeathAudio.Play();
+    }
+    IEnumerator DieHandle()
+    {
+        DeadDialog.SetActive(true);
+        AudioMangerController.instance.Disable();
+        AudioMangerController.instance.Death();
         AsyncOperation asyncOperation = SceneManager.LoadSceneAsync(SceneManager.GetActiveScene().name);
-        asyncOperation.allowSceneActivation=false;
-        yield return  new WaitForSeconds(1);
-        asyncOperation.allowSceneActivation=true;
+        asyncOperation.allowSceneActivation = false;
+        yield return new WaitForSeconds(1);
+        asyncOperation.allowSceneActivation = true;
     }
     private void OnCollisionEnter2D(Collision2D collision)
     {
         if (collision.gameObject.CompareTag("Empty"))
         {
 
-            
+
             //玩家与敌人碰撞，判断是否踩到
-            if (Physics2D.OverlapCircle(UnderGroundCheck.position,0.1f, collision.gameObject.layer) &&animator.GetBool(AnimationConstString.FALLING) && !animator.GetBool(AnimationConstString.HURTING))
+            if (Physics2D.OverlapCircle(UnderGroundCheck.position, 0.1f, collision.gameObject.layer) && animator.GetBool(AnimationConstString.FALLING) && !animator.GetBool(AnimationConstString.HURTING))
             {
                 //TODO 需要统一处理敌人死亡的
                 RB.velocity = new Vector2(RB.velocity.x, 15);
@@ -225,7 +249,7 @@ public class PlayerController : AbstractCharacter
                 {
                     RB.velocity = new Vector2(HurtX, HurtY);
                 }
-                HurtAudio.Play();
+                AudioMangerController.instance.Hurt();
                 animator.SetBool(AnimationConstString.HURTING, true);
                 hurtTimer = Time.unscaledTime + HurtTime;
             }
