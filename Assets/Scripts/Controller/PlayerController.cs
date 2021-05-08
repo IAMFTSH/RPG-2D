@@ -54,7 +54,7 @@ public class PlayerController : AbstractCharacter
     void FixedUpdate()
     {
         //是否在地面
-        isGround = Physics2D.OverlapCircle(UnderGroundCheck.position, 0.1f, Ground);
+        isGround = Physics2D.OverlapCircle(UnderGroundCheck.position, 0.2f, Ground);
         //移动
         if (!animator.GetBool(AnimationConstString.HURTING))
         {
@@ -228,12 +228,9 @@ public class PlayerController : AbstractCharacter
     {
         if (collision.gameObject.CompareTag("Empty"))
         {
-
-
             //玩家与敌人碰撞，判断是否踩到
-            if (Physics2D.OverlapCircle(UnderGroundCheck.position, 0.1f, collision.gameObject.layer) && animator.GetBool(AnimationConstString.FALLING) && !animator.GetBool(AnimationConstString.HURTING))
+            if (Physics2D.OverlapCircle(UnderGroundCheck.position, 0.2f, collision.gameObject.layer) && animator.GetBool(AnimationConstString.FALLING) && !animator.GetBool(AnimationConstString.HURTING))
             {
-                //TODO 需要统一处理敌人死亡的
                 RB.velocity = new Vector2(RB.velocity.x, 15);
                 Animator frogAnimator = collision.gameObject.GetComponent<Animator>();
                 frogAnimator.SetTrigger(AnimationConstString.DEATH);
